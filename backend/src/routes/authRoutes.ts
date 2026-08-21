@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import nodemailer from 'nodemailer';
 import { db } from '../db/db';
 import { AuthRequest, generateToken, requireAdmin } from '../middleware/auth';
 
@@ -13,8 +14,54 @@ function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// POST /api/auth/login-step1 - Validate password & generate OTP
-router.post('/login-step1', (req, res) => {
+// Helper: Send Real Email via Nodemailer SMTP
+async function sendOtpEmail(recipientEmail: string, code: string): Promise<boolean> {
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || '587', 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    console.log(`ℹ️ [EMAIL DISPATCH] SMTP credentials not set. OTP [ ${code} ] logged for ${recipientEmail}.`);
+    return false;
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: port === 465,
+      auth: { user, pass }
+    });
+
+    await transporter.sendMail({
+      from: `"PJ Saree Pleating Security" <${user}>`,
+      to: recipientEmail,
+      subject: `🌸 ${code} is your PJ Saree Pleating Admin Security Code`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 2px solid #D4AF37; border-radius: 20px; background-color: #FFFDF9;">
+          <h2 style="color: #4A0E17; text-align: center; font-family: Georgia, serif; margin-bottom: 5px;">🌸 PJ Saree Pleating</h2>
+          <p style="color: #8B6B23; text-align: center; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-top: 0;">Protected Owner & Admin Portal</p>
+          <hr style="border: 0; border-top: 1px solid #EAD8B1; margin: 15px 0;" />
+          <p style="color: #333; font-size: 14px; text-align: center;">Your 2-Step Login Security Verification Code is:</p>
+          <div style="background-color: #4A0E17; color: #F5E6C8; padding: 18px; text-align: center; border-radius: 14px; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 20px 0; border: 1px solid #D4AF37;">
+            ${code}
+          </div>
+          <p style="color: #666; font-size: 12px; text-align: center; line-height: 1.5;">This code is valid for 10 minutes. If you did not attempt to sign into your PJ Saree Pleating Admin Portal, please secure your account immediately.</p>
+        </div>
+      `
+    });
+
+    console.log(`✅ [EMAIL DISPATCH SUCCESS] Real Security OTP email sent to ${recipientEmail}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ [EMAIL DISPATCH FAILED] Error sending email to ${recipientEmail}:`, err);
+    return false;
+  }
+}
+
+// POST /api/auth/login-step1 - Validate password & generate/send OTP
+router.post('/login-step1', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -40,11 +87,17 @@ router.post('/login-step1', (req, res) => {
 
   console.log(`🔐 [SECURITY ALERT] 2-Step OTP Code for ${admin.email}: [ ${code} ]`);
 
+  // Attempt to send email
+  const emailSent = await sendOtpEmail(admin.email, code);
+
   return res.json({
     requiresOtp: true,
-    message: 'Password verified. 6-Digit Security OTP sent!',
+    message: emailSent
+      ? `Password verified! Security OTP code sent to ${admin.email}`
+      : 'Password verified. 6-Digit Security OTP code generated!',
     email: admin.email,
-    demoOtp: code // Included for instant easy verification
+    emailSent,
+    demoOtp: emailSent ? undefined : code // Show fallback banner only if SMTP is not configured
   });
 });
 
