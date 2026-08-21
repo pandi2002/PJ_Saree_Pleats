@@ -7,6 +7,8 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  loginStep1: (email: string, password: string) => Promise<{ requiresOtp: boolean; demoOtp?: string }>;
+  verifyOtp: (email: string, otpCode: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -39,6 +41,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifyAuth();
   }, [token]);
 
+  const loginStep1 = async (email: string, password: string) => {
+    const res = await api.post('/auth/login-step1', { email, password });
+    return res.data;
+  };
+
+  const verifyOtp = async (email: string, otpCode: string) => {
+    const res = await api.post('/auth/verify-otp', { email, otpCode });
+    const { token: newToken, admin: adminData } = res.data;
+    localStorage.setItem('pj_admin_token', newToken);
+    setToken(newToken);
+    setAdmin(adminData);
+  };
+
   const login = async (email: string, password: string) => {
     const res = await api.post('/auth/login', { email, password });
     const { token: newToken, admin: adminData } = res.data;
@@ -60,6 +75,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         token,
         isAuthenticated: !!admin,
         isLoading,
+        loginStep1,
+        verifyOtp,
         login,
         logout
       }}

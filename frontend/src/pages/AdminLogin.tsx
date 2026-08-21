@@ -1,27 +1,57 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, Lock, Mail, AlertCircle } from 'lucide-react';
+import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [step, setStep] = useState<1 | 2>(1);
+  const [demoOtp, setDemoOtp] = useState<string | null>(null);
+
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { login } = useAuth();
+  const { loginStep1, verifyOtp } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleStep1Submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const data = await loginStep1(email, password);
+      if (data.requiresOtp) {
+        setDemoOtp(data.demoOtp || null);
+        setStep(2);
+        setSuccessMessage('Password verified! 6-digit Security OTP code generated.');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.response?.data?.error || 'Invalid email or password');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleStep2Verify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length < 6) {
+      setErrorMessage('Please enter the full 6-digit OTP code');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage('');
 
     try {
-      await login(email, password);
+      await verifyOtp(email, otpCode);
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || 'Invalid credentials');
+      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -29,74 +59,139 @@ export const AdminLogin: React.FC = () => {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="max-w-md w-full bg-pj-creamLight rounded-3xl p-8 border border-pj-gold/40 shadow-2xl space-y-6">
+      <div className="max-w-md w-full bg-pj-creamLight rounded-3xl p-8 border border-pj-gold/40 shadow-2xl space-y-6 relative overflow-hidden">
         
+        {/* Header */}
         <div className="text-center space-y-2">
           <div className="w-14 h-14 rounded-full bg-maroon-gradient flex items-center justify-center text-pj-gold mx-auto shadow-lg">
-            <Sparkles className="w-7 h-7" />
+            {step === 1 ? <Sparkles className="w-7 h-7" /> : <KeyRound className="w-7 h-7" />}
           </div>
           <h1 className="font-serif text-2xl font-bold text-pj-maroonDark">PJ Saree Pleating</h1>
-          <p className="text-xs font-semibold uppercase tracking-wider text-pj-goldDark">Protected Owner & Admin Portal</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-pj-goldDark">
+            {step === 1 ? 'Protected Owner Portal' : '2-Step Security Verification'}
+          </p>
         </div>
 
+        {/* Notifications */}
         {errorMessage && (
           <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center space-x-2">
-            <AlertCircle className="w-4 h-4 shrink-0" />
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
             <span>{errorMessage}</span>
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1">
-              Admin Email
-            </label>
-            <div className="relative">
-              <Mail className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter owner email"
-                autoComplete="off"
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-pj-gold/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-pj-gold font-mono"
-              />
-            </div>
+        {successMessage && (
+          <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+            <span>{successMessage}</span>
           </div>
+        )}
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <Lock className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter owner password"
-                autoComplete="off"
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-pj-gold/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-pj-gold font-mono"
-              />
-            </div>
+        {/* Demo OTP Banner Alert */}
+        {demoOtp && step === 2 && (
+          <div className="p-4 rounded-2xl bg-pj-gold/15 border-2 border-pj-gold/40 text-pj-maroonDark text-center space-y-1">
+            <span className="text-[11px] uppercase tracking-widest font-bold text-pj-goldDark block">🔑 Security OTP Code Generated</span>
+            <span className="font-mono font-bold text-2xl tracking-widest block text-pj-maroon">{demoOtp}</span>
+            <span className="text-[10px] text-pj-charcoal/70 block">Valid for 10 minutes</span>
           </div>
+        )}
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
-          >
-            <Shield className="w-4 h-4" />
-            <span>{isSubmitting ? 'Authenticating...' : 'Sign In To Dashboard'}</span>
-          </button>
-        </form>
+        {/* STEP 1 FORM: Email & Password */}
+        {step === 1 && (
+          <form onSubmit={handleStep1Submit} className="space-y-4" autoComplete="off">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1">
+                Admin Email *
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter owner email"
+                  autoComplete="off"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-pj-gold/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-pj-gold font-mono"
+                />
+              </div>
+            </div>
 
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1">
+                Password *
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter owner password"
+                  autoComplete="off"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-pj-gold/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-pj-gold font-mono"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+            >
+              <Shield className="w-4 h-4" />
+              <span>{isSubmitting ? 'Verifying Password...' : 'Continue to OTP Verification'}</span>
+            </button>
+          </form>
+        )}
+
+        {/* STEP 2 FORM: 6-Digit OTP */}
+        {step === 2 && (
+          <form onSubmit={handleStep2Verify} className="space-y-5" autoComplete="off">
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1 text-center">
+                Enter 6-Digit Security OTP *
+              </label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
+                <input
+                  type="text"
+                  maxLength={6}
+                  required
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                  placeholder="123456"
+                  autoComplete="off"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-pj-gold/40 bg-white text-center text-xl font-mono tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-pj-gold text-pj-maroonDark font-bold"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || otpCode.length < 6}
+              className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+            >
+              <Shield className="w-4 h-4" />
+              <span>{isSubmitting ? 'Authenticating OTP...' : 'Verify OTP & Access Portal'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => { setStep(1); setOtpCode(''); setDemoOtp(null); }}
+              className="w-full text-center text-xs font-medium text-pj-charcoal/70 hover:text-pj-maroon transition-colors block"
+            >
+              ← Back to Password Login
+            </button>
+          </form>
+        )}
+
+        {/* Security Footer */}
         <div className="pt-4 border-t border-pj-gold/20 text-center text-xs text-pj-charcoal/60 space-y-1">
           <p className="flex items-center justify-center space-x-1.5 text-pj-maroon font-semibold">
             <Shield className="w-3.5 h-3.5 text-pj-goldDark" />
-            <span>Authorized Owner Access Only</span>
+            <span>Encrypted 2-Step OTP Authentication</span>
           </p>
         </div>
 
