@@ -8,7 +8,6 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<1 | 2>(1);
-  const [demoOtp, setDemoOtp] = useState<string | null>(null);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -26,9 +25,8 @@ export const AdminLogin: React.FC = () => {
     try {
       const data = await loginStep1(email, password);
       if (data.requiresOtp) {
-        setDemoOtp(data.demoOtp || null);
         setStep(2);
-        setSuccessMessage('Password verified! 6-digit Security OTP code generated.');
+        setSuccessMessage(`Password verified! 6-digit Security OTP has been sent to ${email}`);
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -51,7 +49,7 @@ export const AdminLogin: React.FC = () => {
       await verifyOtp(email, otpCode);
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please try again.');
+      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please check your email and try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -84,15 +82,6 @@ export const AdminLogin: React.FC = () => {
           <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center space-x-2">
             <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
             <span>{successMessage}</span>
-          </div>
-        )}
-
-        {/* Demo OTP Banner Alert */}
-        {demoOtp && step === 2 && (
-          <div className="p-4 rounded-2xl bg-pj-gold/15 border-2 border-pj-gold/40 text-pj-maroonDark text-center space-y-1">
-            <span className="text-[11px] uppercase tracking-widest font-bold text-pj-goldDark block">🔑 Security OTP Code Generated</span>
-            <span className="font-mono font-bold text-2xl tracking-widest block text-pj-maroon">{demoOtp}</span>
-            <span className="text-[10px] text-pj-charcoal/70 block">Valid for 10 minutes</span>
           </div>
         )}
 
@@ -141,14 +130,21 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying Password...' : 'Continue to OTP Verification'}</span>
+              <span>{isSubmitting ? 'Verifying Password...' : 'Send OTP to Email & Continue'}</span>
             </button>
           </form>
         )}
 
-        {/* STEP 2 FORM: 6-Digit OTP */}
+        {/* STEP 2 FORM: 6-Digit OTP from Email */}
         {step === 2 && (
           <form onSubmit={handleStep2Verify} className="space-y-5" autoComplete="off">
+            <div className="p-4 rounded-2xl bg-pj-gold/10 border border-pj-gold/30 text-center space-y-1">
+              <span className="text-xs font-bold text-pj-maroonDark block">📧 Check Your Email Inbox</span>
+              <span className="text-[11px] text-pj-charcoal/80 block">
+                A 6-digit Security OTP has been sent to <strong>{email}</strong>
+              </span>
+            </div>
+
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1 text-center">
                 Enter 6-Digit Security OTP *
@@ -174,12 +170,12 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Authenticating OTP...' : 'Verify OTP & Access Portal'}</span>
+              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify OTP & Access Portal'}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => { setStep(1); setOtpCode(''); setDemoOtp(null); }}
+              onClick={() => { setStep(1); setOtpCode(''); }}
               className="w-full text-center text-xs font-medium text-pj-charcoal/70 hover:text-pj-maroon transition-colors block"
             >
               ← Back to Password Login
@@ -191,7 +187,7 @@ export const AdminLogin: React.FC = () => {
         <div className="pt-4 border-t border-pj-gold/20 text-center text-xs text-pj-charcoal/60 space-y-1">
           <p className="flex items-center justify-center space-x-1.5 text-pj-maroon font-semibold">
             <Shield className="w-3.5 h-3.5 text-pj-goldDark" />
-            <span>Encrypted 2-Step OTP Authentication</span>
+            <span>Private Email OTP Verification</span>
           </p>
         </div>
 

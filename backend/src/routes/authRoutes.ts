@@ -92,12 +92,9 @@ router.post('/login-step1', async (req, res) => {
 
   return res.json({
     requiresOtp: true,
-    message: emailSent
-      ? `Password verified! Security OTP code sent to ${admin.email}`
-      : 'Password verified. 6-Digit Security OTP code generated!',
+    message: `Password verified! 6-Digit Security OTP sent to ${admin.email}`,
     email: admin.email,
-    emailSent,
-    demoOtp: emailSent ? undefined : code // Show fallback banner only if SMTP is not configured
+    emailSent
   });
 });
 
