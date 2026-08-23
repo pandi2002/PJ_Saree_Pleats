@@ -88,6 +88,19 @@ if (fs.existsSync(frontendDistPath)) {
   });
 }
 
+// Self-ping keep-alive to prevent Render free-tier cold starts
+const RENDER_SERVICE_URL = process.env.RENDER_EXTERNAL_URL || 'https://pj-saree-pleats.onrender.com';
+setInterval(() => {
+  try {
+    const httpModule = RENDER_SERVICE_URL.startsWith('https') ? require('https') : require('http');
+    httpModule.get(`${RENDER_SERVICE_URL}/api/health`, (res: any) => {
+      console.log(`💓 [KEEP-ALIVE PING] Server health pinged to keep Render awake 24/7. Status: ${res.statusCode}`);
+    }).on('error', (err: any) => console.log('Keep-alive ping error:', err.message));
+  } catch (err: any) {
+    console.log('Keep-alive ping exception:', err.message);
+  }
+}, 12 * 60 * 1000); // Ping every 12 minutes
+
 app.listen(PORT, () => {
   console.log(`🌸 PJ Saree Pleating Server running on http://localhost:${PORT}`);
 });
