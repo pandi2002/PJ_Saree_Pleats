@@ -18,11 +18,11 @@ function generateOtp(): string {
 async function sendOtpEmail(recipientEmail: string, code: string): Promise<boolean> {
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
 
   if (!user || !pass) {
-    console.log(`ℹ️ [EMAIL DISPATCH] SMTP credentials not set. OTP [ ${code} ] logged for ${recipientEmail}.`);
+    console.log(`ℹ️ [EMAIL DISPATCH] SMTP credentials not set (SMTP_USER/SMTP_PASS missing). OTP [ ${code} ] logged for ${recipientEmail}.`);
     return false;
   }
 
@@ -31,6 +31,7 @@ async function sendOtpEmail(recipientEmail: string, code: string): Promise<boole
       host,
       port,
       secure: port === 465,
+      requireTLS: port === 587,
       auth: { user, pass }
     });
 
@@ -59,6 +60,28 @@ async function sendOtpEmail(recipientEmail: string, code: string): Promise<boole
     return false;
   }
 }
+
+// GET /api/auth/test-email - Diagnostic route to test SMTP setup
+router.get('/test-email', async (req, res) => {
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+
+  if (!user || !pass) {
+    return res.json({
+      status: 'missing_config',
+      message: 'SMTP_USER or SMTP_PASS environment variables are missing in Render Environment Settings.',
+      configuredUser: user || 'Not Set',
+      hasPassword: !!pass
+    });
+  }
+
+  const success = await sendOtpEmail('dharshyammu@gmail.com', '998877');
+  if (success) {
+    return res.json({ status: 'success', message: 'Test OTP Email sent successfully to dharshyammu@gmail.com!' });
+  } else {
+    return res.status(500).json({ status: 'error', message: 'Email dispatch failed. Please verify your Gmail 16-character App Password.' });
+  }
+});
 
 // POST /api/auth/login-step1 - Validate password & generate/send OTP
 router.post('/login-step1', async (req, res) => {
