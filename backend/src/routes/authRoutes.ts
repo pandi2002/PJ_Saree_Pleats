@@ -90,14 +90,15 @@ router.post('/login-step1', async (req, res) => {
 
   console.log(`🔐 [SECURITY ALERT] 2-Step OTP Code for ${admin.email}: [ ${code} ]`);
 
-  // Attempt to send email
-  const emailSent = await sendOtpEmail(admin.email, code);
+  // Send email asynchronously in background so HTTP response returns instantly (0s delay)
+  sendOtpEmail(admin.email, code).catch((err) => {
+    console.error('Background OTP email dispatch error:', err);
+  });
 
   return res.json({
     requiresOtp: true,
     message: `Password verified! 6-Digit Security OTP sent to ${admin.email}`,
-    email: admin.email,
-    emailSent
+    email: admin.email
   });
 });
 

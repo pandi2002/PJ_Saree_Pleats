@@ -132,9 +132,13 @@ const dbInstance = new JSONDatabase();
 export function initDatabase() {
   const data = dbInstance.getData();
 
-  // 1. Seed Admin
-  if (data.admins.length === 0) {
-    const passwordHash = bcrypt.hashSync('yamu@2008', 10);
+  // 1. Seed & Sync Admin User
+  const adminIndex = data.admins.findIndex(a => a.email.toLowerCase() === 'dharshyammu@gmail.com');
+  const passwordHash = bcrypt.hashSync('yamu@2008', 10);
+
+  if (adminIndex >= 0) {
+    data.admins[adminIndex].passwordHash = passwordHash;
+  } else {
     data.admins.push({
       id: 'admin-1',
       name: 'PJ Saree Pleating Owner',
@@ -143,8 +147,9 @@ export function initDatabase() {
       role: 'admin',
       createdAt: new Date().toISOString()
     });
-    console.log('Owner Admin Account Active: dharshyammu@gmail.com');
   }
+  dbInstance.save();
+  console.log('Owner Admin Account Synced: dharshyammu@gmail.com (Password: yamu@2008)');
 
   // 2. Seed Business Info
   if (data.business_info.length === 0) {
