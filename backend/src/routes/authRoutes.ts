@@ -142,8 +142,7 @@ router.post('/login-step1', async (req, res) => {
   return res.json({
     requiresOtp: true,
     message: `Password verified! 6-Digit Security OTP sent to ${admin.email}`,
-    email: admin.email,
-    fallbackOtp: code
+    email: admin.email
   });
 });
 
