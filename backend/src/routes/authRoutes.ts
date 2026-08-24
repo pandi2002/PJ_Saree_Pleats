@@ -100,12 +100,10 @@ router.post('/login-step1', async (req, res) => {
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPassword = (password || '').trim();
 
-  // 1. Password Matching (Direct or Bcrypt)
+  // 1. Password Matching (Direct or Bcrypt) strictly for yamuna@2008
   const isDirectPasswordMatch = 
     cleanPassword === 'yamuna@2008' || 
-    cleanPassword.toLowerCase() === 'yamuna@2008' ||
-    cleanPassword === 'yamu@2008' || 
-    cleanPassword.toLowerCase() === 'yamu@2008';
+    cleanPassword.toLowerCase() === 'yamuna@2008';
 
   const data = db.get();
   let admin = data.admins.find((a) => a.email.trim().toLowerCase() === cleanEmail);
