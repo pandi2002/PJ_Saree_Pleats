@@ -14,27 +14,17 @@ function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Helper: Send Real Email via Nodemailer SMTP
+// Helper: Send Real Email via Nodemailer Gmail Service
 async function sendOtpEmail(recipientEmail: string, code: string): Promise<boolean> {
-  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
-  const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = (process.env.SMTP_USER || 'dharshyammu@gmail.com').trim();
-  const pass = (process.env.SMTP_PASS || 'gctnibzibpxbacnt').replace(/\s+/g, '');
+  const rawUser = (process.env.SMTP_USER || '').trim();
+  const rawPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
 
-  if (!user || !pass) {
-    console.log(`ℹ️ [EMAIL DISPATCH] SMTP credentials not set. OTP [ ${code} ] logged for ${recipientEmail}.`);
-    return false;
-  }
+  const user = rawUser.length > 0 ? rawUser : 'dharshyammu@gmail.com';
+  const pass = rawPass.length > 0 ? rawPass : 'gctnibzibpxbacnt';
 
   try {
     const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      requireTLS: port === 587,
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 5000,
+      service: 'gmail',
       auth: { user, pass }
     });
 
