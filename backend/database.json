@@ -4,9 +4,9 @@
       "id": "admin-1",
       "name": "PJ Saree Pleating Owner",
       "email": "dharshyammu@gmail.com",
-      "passwordHash": "$2a$10$U.3sRvuYO2ggWkfcDvIdWuP2dfIHQ3k/vU.4m3c6Ui92KU.Qkj3l6",
+      "passwordHash": "$2a$10$BF46h2WbkPO/gnxAJIFKsuiXnzeHYPq1K6GtSCyARrvaCMTRY.iBu",
       "role": "admin",
-      "createdAt": "2026-08-21T16:03:22.409Z"
+      "createdAt": "2026-08-24T15:28:47.203Z"
     }
   ],
   "owner_posts": [

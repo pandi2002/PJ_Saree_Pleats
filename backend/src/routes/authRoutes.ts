@@ -67,13 +67,16 @@ router.post('/login-step1', async (req, res) => {
     return res.status(400).json({ error: 'Email and password are required' });
   }
 
+  const cleanEmail = email.trim().toLowerCase();
+  const cleanPassword = password.trim();
+
   const data = db.get();
-  const admin = data.admins.find((a) => a.email.toLowerCase() === email.toLowerCase());
+  const admin = data.admins.find((a) => a.email.trim().toLowerCase() === cleanEmail);
   if (!admin) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  const isPasswordValid = bcrypt.compareSync(password, admin.passwordHash);
+  const isPasswordValid = bcrypt.compareSync(cleanPassword, admin.passwordHash);
   if (!isPasswordValid) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
