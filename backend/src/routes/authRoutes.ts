@@ -14,7 +14,7 @@ function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Helper: Send Real Email via Nodemailer Gmail Service
+// Helper: Send Real Email via Nodemailer Gmail SSL Port 465
 async function sendOtpEmail(recipientEmail: string, code: string): Promise<boolean> {
   const rawUser = (process.env.SMTP_USER || '').trim();
   const rawPass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
@@ -24,8 +24,13 @@ async function sendOtpEmail(recipientEmail: string, code: string): Promise<boole
 
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass }
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: { user, pass },
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000
     });
 
     await transporter.sendMail({
