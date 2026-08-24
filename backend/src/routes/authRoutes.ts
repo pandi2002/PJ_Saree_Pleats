@@ -32,6 +32,9 @@ async function sendOtpEmail(recipientEmail: string, code: string): Promise<boole
       port,
       secure: port === 465,
       requireTLS: port === 587,
+      connectionTimeout: 5000,
+      greetingTimeout: 5000,
+      socketTimeout: 5000,
       auth: { user, pass }
     });
 
@@ -63,23 +66,27 @@ async function sendOtpEmail(recipientEmail: string, code: string): Promise<boole
 
 // GET /api/auth/test-email - Diagnostic route to test SMTP setup
 router.get('/test-email', async (req, res) => {
-  const user = (process.env.SMTP_USER || '').trim();
-  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+  try {
+    const user = (process.env.SMTP_USER || '').trim();
+    const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
 
-  if (!user || !pass) {
-    return res.json({
-      status: 'missing_config',
-      message: 'SMTP_USER or SMTP_PASS environment variables are missing in Render Environment Settings.',
-      configuredUser: user || 'Not Set',
-      hasPassword: !!pass
-    });
-  }
+    if (!user || !pass) {
+      return res.json({
+        status: 'missing_config',
+        message: 'SMTP_USER or SMTP_PASS environment variables are missing in Render Environment Settings.',
+        configuredUser: user || 'Not Set',
+        hasPassword: !!pass
+      });
+    }
 
-  const success = await sendOtpEmail('dharshyammu@gmail.com', '998877');
-  if (success) {
-    return res.json({ status: 'success', message: 'Test OTP Email sent successfully to dharshyammu@gmail.com!' });
-  } else {
-    return res.status(500).json({ status: 'error', message: 'Email dispatch failed. Please verify your Gmail 16-character App Password.' });
+    const success = await sendOtpEmail('dharshyammu@gmail.com', '998877');
+    if (success) {
+      return res.json({ status: 'success', message: 'Test OTP Email sent successfully to dharshyammu@gmail.com!' });
+    } else {
+      return res.json({ status: 'error', message: 'Gmail SMTP connection or authentication failed. Please check your 16-character Gmail App Password in Render settings.' });
+    }
+  } catch (err: any) {
+    return res.json({ status: 'error', message: err.message || 'Diagnostic error' });
   }
 });
 
