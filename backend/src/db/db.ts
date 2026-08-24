@@ -134,7 +134,7 @@ export function initDatabase() {
 
   // 1. Seed & Sync Admin User
   const adminIndex = data.admins.findIndex(a => a.email.toLowerCase() === 'dharshyammu@gmail.com');
-  const passwordHash = bcrypt.hashSync('yamu@2008', 10);
+  const passwordHash = bcrypt.hashSync('yamuna@2008', 10);
 
   if (adminIndex >= 0) {
     data.admins[adminIndex].passwordHash = passwordHash;
@@ -149,7 +149,7 @@ export function initDatabase() {
     });
   }
   dbInstance.save();
-  console.log('Owner Admin Account Synced: dharshyammu@gmail.com (Password: yamu@2008)');
+  console.log('Owner Admin Account Synced: dharshyammu@gmail.com (Password: yamuna@2008)');
 
   // 2. Seed Business Info
   if (data.business_info.length === 0) {
