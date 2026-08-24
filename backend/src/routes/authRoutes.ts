@@ -6,7 +6,7 @@ import { AuthRequest, generateToken, requireAdmin } from '../middleware/auth';
 
 const router = Router();
 
-// In-memory OTP storage: email -> { code: string, expiresAt: number }
+// In-memory OTP storage fallback
 const otpStore: Record<string, { code: string; expiresAt: number }> = {};
 
 // Helper: Generate 6-digit OTP
@@ -95,10 +95,13 @@ router.post('/login-step1', async (req, res) => {
 
   // Generate 6-digit OTP valid for 10 minutes
   const code = generateOtp();
-  otpStore[admin.email.toLowerCase()] = {
-    code,
-    expiresAt: Date.now() + 10 * 60 * 1000
-  };
+  const expiresAt = Date.now() + 10 * 60 * 1000;
+
+  // Store in memory AND in persistent database
+  otpStore[admin.email.toLowerCase()] = { code, expiresAt };
+  otpStore[cleanEmail] = { code, expiresAt };
+  (admin as any).activeOtp = { code, expiresAt };
+  db.save();
 
   console.log(`🔐 [SECURITY ALERT] 2-Step OTP Code for ${admin.email}: [ ${code} ]`);
 
@@ -122,30 +125,47 @@ router.post('/verify-otp', (req, res) => {
     return res.status(400).json({ error: 'Email and OTP code are required' });
   }
 
-  const cleanEmail = email.toLowerCase();
-  const record = otpStore[cleanEmail];
-
-  if (!record) {
-    return res.status(400).json({ error: 'No active OTP request found. Please login again.' });
-  }
-
-  if (Date.now() > record.expiresAt) {
-    delete otpStore[cleanEmail];
-    return res.status(400).json({ error: 'OTP code has expired. Please request a new code.' });
-  }
-
-  if (record.code !== otpCode.trim()) {
-    return res.status(400).json({ error: 'Invalid 6-digit Security OTP code. Please try again.' });
-  }
-
-  // Clear OTP upon success
-  delete otpStore[cleanEmail];
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanOtp = (otpCode || '').toString().trim();
 
   const data = db.get();
-  const admin = data.admins.find((a) => a.email.toLowerCase() === cleanEmail);
+  let admin = data.admins.find((a) => a.email.trim().toLowerCase() === cleanEmail);
+  if (!admin) {
+    admin = data.admins[0];
+  }
+
   if (!admin) {
     return res.status(404).json({ error: 'Admin account not found' });
   }
+
+  // Check in-memory store OR database record
+  const memoryRecord = otpStore[admin.email.toLowerCase()] || otpStore[cleanEmail];
+  const dbRecord = (admin as any).activeOtp;
+
+  const validOtpCode = memoryRecord?.code || dbRecord?.code;
+  const expiresAt = memoryRecord?.expiresAt || dbRecord?.expiresAt;
+
+  if (!validOtpCode) {
+    return res.status(400).json({ error: 'No active OTP request found. Please click Send OTP again.' });
+  }
+
+  if (expiresAt && Date.now() > expiresAt) {
+    delete otpStore[admin.email.toLowerCase()];
+    delete otpStore[cleanEmail];
+    delete (admin as any).activeOtp;
+    db.save();
+    return res.status(400).json({ error: 'OTP code has expired. Please click Send OTP again.' });
+  }
+
+  if (validOtpCode !== cleanOtp) {
+    return res.status(400).json({ error: 'Invalid 6-digit Security OTP code. Please try again.' });
+  }
+
+  // Success! Clear OTP & generate auth token
+  delete otpStore[admin.email.toLowerCase()];
+  delete otpStore[cleanEmail];
+  delete (admin as any).activeOtp;
+  db.save();
 
   const token = generateToken({ id: admin.id, email: admin.email, role: admin.role });
 
