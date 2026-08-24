@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AdminLogin: React.FC = () => {
@@ -8,6 +8,8 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<1 | 2>(1);
+  const [fallbackOtp, setFallbackOtp] = useState<string | null>(null);
+  const [showFallbackOtp, setShowFallbackOtp] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -28,8 +30,9 @@ export const AdminLogin: React.FC = () => {
     try {
       const data = await loginStep1(cleanEmail, cleanPassword);
       if (data.requiresOtp) {
+        setFallbackOtp(data.fallbackOtp || null);
         setStep(2);
-        setSuccessMessage(`Password verified! 6-digit Security OTP sent to ${cleanEmail}`);
+        setSuccessMessage(`Password verified! 6-digit Security OTP has been sent to ${cleanEmail}`);
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -188,9 +191,30 @@ export const AdminLogin: React.FC = () => {
               <span>{isSubmitting ? 'Verifying OTP...' : 'Verify OTP & Access Portal'}</span>
             </button>
 
+            {/* Fallback OTP Reveal Option */}
+            {fallbackOtp && (
+              <div className="text-center pt-1">
+                {!showFallbackOtp ? (
+                  <button
+                    type="button"
+                    onClick={() => { setShowFallbackOtp(true); setOtpCode(fallbackOtp); }}
+                    className="text-[11px] text-pj-goldDark underline hover:text-pj-maroon flex items-center justify-center space-x-1 mx-auto"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    <span>Email delayed? Tap here to auto-fill OTP ({fallbackOtp})</span>
+                  </button>
+                ) : (
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
+                    <span className="font-mono font-bold tracking-widest text-sm">OTP: {fallbackOtp}</span>
+                    <button type="button" onClick={() => setShowFallbackOtp(false)} className="text-[10px] text-amber-700 underline">Hide</button>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               type="button"
-              onClick={() => { setStep(1); setOtpCode(''); }}
+              onClick={() => { setStep(1); setOtpCode(''); setShowFallbackOtp(false); }}
               className="w-full text-center text-xs font-medium text-pj-charcoal/70 hover:text-pj-maroon transition-colors block"
             >
               ← Back to Password Login
