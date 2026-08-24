@@ -22,11 +22,14 @@ export const AdminLogin: React.FC = () => {
     setErrorMessage('');
     setSuccessMessage('');
 
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
+
     try {
-      const data = await loginStep1(email, password);
+      const data = await loginStep1(cleanEmail, cleanPassword);
       if (data.requiresOtp) {
         setStep(2);
-        setSuccessMessage(`Password verified! 6-digit Security OTP has been sent to ${email}`);
+        setSuccessMessage(`Password verified! 6-digit Security OTP sent to ${cleanEmail}`);
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -37,7 +40,10 @@ export const AdminLogin: React.FC = () => {
 
   const handleStep2Verify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode || otpCode.length < 6) {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otpCode.trim();
+
+    if (!cleanOtp || cleanOtp.length < 6) {
       setErrorMessage('Please enter the full 6-digit OTP code');
       return;
     }
@@ -46,7 +52,7 @@ export const AdminLogin: React.FC = () => {
     setErrorMessage('');
 
     try {
-      await verifyOtp(email, otpCode);
+      await verifyOtp(cleanEmail, cleanOtp);
       navigate('/admin/dashboard');
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please check your email and try again.');
@@ -101,6 +107,9 @@ export const AdminLogin: React.FC = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter owner email"
                   autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-pj-gold/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-pj-gold font-mono"
                 />
               </div>
@@ -119,6 +128,9 @@ export const AdminLogin: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter owner password"
                   autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full pl-10 pr-4 py-3 rounded-xl border border-pj-gold/30 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-pj-gold font-mono"
                 />
               </div>
@@ -141,7 +153,7 @@ export const AdminLogin: React.FC = () => {
             <div className="p-4 rounded-2xl bg-pj-gold/10 border border-pj-gold/30 text-center space-y-1">
               <span className="text-xs font-bold text-pj-maroonDark block">📧 Check Your Email Inbox</span>
               <span className="text-[11px] text-pj-charcoal/80 block">
-                A 6-digit Security OTP has been sent to <strong>{email}</strong>
+                A 6-digit Security OTP has been sent to <strong>{email.trim().toLowerCase()}</strong>
               </span>
             </div>
 
@@ -159,6 +171,9 @@ export const AdminLogin: React.FC = () => {
                   onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
                   placeholder="123456"
                   autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-pj-gold/40 bg-white text-center text-xl font-mono tracking-[0.4em] focus:outline-none focus:ring-2 focus:ring-pj-gold text-pj-maroonDark font-bold"
                 />
               </div>
