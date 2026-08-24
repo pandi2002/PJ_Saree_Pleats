@@ -18,11 +18,11 @@ function generateOtp(): string {
 async function sendOtpEmail(recipientEmail: string, code: string): Promise<boolean> {
   const host = process.env.SMTP_HOST || 'smtp.gmail.com';
   const port = parseInt(process.env.SMTP_PORT || '587', 10);
-  const user = (process.env.SMTP_USER || '').trim();
-  const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
+  const user = (process.env.SMTP_USER || 'dharshyammu@gmail.com').trim();
+  const pass = (process.env.SMTP_PASS || 'gctnibzibpxbacnt').replace(/\s+/g, '');
 
   if (!user || !pass) {
-    console.log(`ℹ️ [EMAIL DISPATCH] SMTP credentials not set (SMTP_USER/SMTP_PASS missing). OTP [ ${code} ] logged for ${recipientEmail}.`);
+    console.log(`ℹ️ [EMAIL DISPATCH] SMTP credentials not set. OTP [ ${code} ] logged for ${recipientEmail}.`);
     return false;
   }
 
