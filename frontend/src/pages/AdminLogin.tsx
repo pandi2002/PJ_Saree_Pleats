@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2, Eye, EyeOff } from 'lucide-react';
+import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AdminLogin: React.FC = () => {
@@ -9,7 +9,6 @@ export const AdminLogin: React.FC = () => {
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<1 | 2>(1);
   const [fallbackOtp, setFallbackOtp] = useState<string | null>(null);
-  const [showFallbackOtp, setShowFallbackOtp] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -30,9 +29,13 @@ export const AdminLogin: React.FC = () => {
     try {
       const data = await loginStep1(cleanEmail, cleanPassword);
       if (data.requiresOtp) {
-        setFallbackOtp(data.fallbackOtp || null);
+        const code = data.fallbackOtp || data.demoOtp || null;
+        setFallbackOtp(code);
         setStep(2);
-        setSuccessMessage(`Password verified! 6-digit Security OTP has been sent to ${cleanEmail}`);
+        setSuccessMessage(`Password verified! 6-digit Security OTP sent to ${cleanEmail}`);
+        if (code) {
+          setOtpCode(code); // Auto-fill for 1-tap instant verification!
+        }
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -145,24 +148,29 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying Password...' : 'Send OTP to Email & Continue'}</span>
+              <span>{isSubmitting ? 'Verifying Password...' : 'Send OTP & Continue'}</span>
             </button>
           </form>
         )}
 
-        {/* STEP 2 FORM: 6-Digit OTP from Email */}
+        {/* STEP 2 FORM: 6-Digit OTP from Email / Instant Banner */}
         {step === 2 && (
           <form onSubmit={handleStep2Verify} className="space-y-5" autoComplete="off">
-            <div className="p-4 rounded-2xl bg-pj-gold/10 border border-pj-gold/30 text-center space-y-1">
-              <span className="text-xs font-bold text-pj-maroonDark block">📧 Check Your Email Inbox</span>
+            <div className="p-4 rounded-2xl bg-pj-gold/10 border border-pj-gold/30 text-center space-y-1.5">
+              <span className="text-xs font-bold text-pj-maroonDark block">📧 OTP Sent to Inbox & Auto-Filled</span>
               <span className="text-[11px] text-pj-charcoal/80 block">
-                A 6-digit Security OTP has been sent to <strong>{email.trim().toLowerCase()}</strong>
+                Security OTP sent to <strong>{email.trim().toLowerCase()}</strong>
               </span>
+              {fallbackOtp && (
+                <div className="mt-2 inline-block px-3 py-1 bg-pj-maroon text-pj-gold font-mono font-bold text-sm rounded-lg border border-pj-gold/40 shadow-sm">
+                  🔑 OTP: {fallbackOtp}
+                </div>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1 text-center">
-                Enter 6-Digit Security OTP *
+                6-Digit Security OTP *
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
@@ -191,30 +199,9 @@ export const AdminLogin: React.FC = () => {
               <span>{isSubmitting ? 'Verifying OTP...' : 'Verify OTP & Access Portal'}</span>
             </button>
 
-            {/* Fallback OTP Reveal Option */}
-            {fallbackOtp && (
-              <div className="text-center pt-1">
-                {!showFallbackOtp ? (
-                  <button
-                    type="button"
-                    onClick={() => { setShowFallbackOtp(true); setOtpCode(fallbackOtp); }}
-                    className="text-[11px] text-pj-goldDark underline hover:text-pj-maroon flex items-center justify-center space-x-1 mx-auto"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                    <span>Email delayed? Tap here to auto-fill OTP ({fallbackOtp})</span>
-                  </button>
-                ) : (
-                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs flex items-center justify-between">
-                    <span className="font-mono font-bold tracking-widest text-sm">OTP: {fallbackOtp}</span>
-                    <button type="button" onClick={() => setShowFallbackOtp(false)} className="text-[10px] text-amber-700 underline">Hide</button>
-                  </div>
-                )}
-              </div>
-            )}
-
             <button
               type="button"
-              onClick={() => { setStep(1); setOtpCode(''); setShowFallbackOtp(false); }}
+              onClick={() => { setStep(1); setOtpCode(''); setFallbackOtp(null); }}
               className="w-full text-center text-xs font-medium text-pj-charcoal/70 hover:text-pj-maroon transition-colors block"
             >
               ← Back to Password Login
