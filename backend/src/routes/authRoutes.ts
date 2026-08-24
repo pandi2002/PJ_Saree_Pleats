@@ -30,10 +30,17 @@ async function sendOtpEmail(recipientEmail: string, code: string): Promise<boole
       socketTimeout: 5000
     });
 
+    const timeStr = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
     await transporter.sendMail({
       from: `"PJ Saree Pleating Security" <${user}>`,
       to: recipientEmail,
-      subject: `🌸 ${code} is your PJ Saree Pleating Admin Security Code`,
+      subject: `🌸 Security OTP: [ ${code} ] - Sent at ${timeStr} IST`,
+      headers: {
+        'X-Priority': '1 (Highest)',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High'
+      },
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 2px solid #D4AF37; border-radius: 20px; background-color: #FFFDF9;">
           <h2 style="color: #4A0E17; text-align: center; font-family: Georgia, serif; margin-bottom: 5px;">🌸 PJ Saree Pleating</h2>
@@ -43,7 +50,8 @@ async function sendOtpEmail(recipientEmail: string, code: string): Promise<boole
           <div style="background-color: #4A0E17; color: #F5E6C8; padding: 18px; text-align: center; border-radius: 14px; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 20px 0; border: 1px solid #D4AF37;">
             ${code}
           </div>
-          <p style="color: #666; font-size: 12px; text-align: center; line-height: 1.5;">This code is valid for 10 minutes. If you did not attempt to sign into your PJ Saree Pleating Admin Portal, please secure your account immediately.</p>
+          <p style="color: #888; font-size: 11px; text-align: center; font-weight: bold; margin-bottom: 10px;">⏰ Generated at ${timeStr} IST (Valid for 10 Minutes)</p>
+          <p style="color: #666; font-size: 12px; text-align: center; line-height: 1.5;">If you did not attempt to sign into your PJ Saree Pleating Admin Portal, please secure your account immediately.</p>
         </div>
       `
     });
