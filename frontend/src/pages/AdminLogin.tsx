@@ -32,10 +32,8 @@ export const AdminLogin: React.FC = () => {
         const code = data.otpCode || data.fallbackOtp || data.demoOtp || null;
         setActiveOtpCode(code);
         setStep(2);
-        setSuccessMessage(`Password verified! Security OTP sent to owner phone +91 63801 44979`);
-        if (code) {
-          setOtpCode(code); // Auto-fill for instant 1-tap verification!
-        }
+        setOtpCode(''); // Keep input BLANK for true 2-step security verification!
+        setSuccessMessage(`Password verified! Security OTP generated for owner phone +91 63801 44979`);
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -154,39 +152,39 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying Password...' : 'Send Phone/WhatsApp OTP & Continue'}</span>
+              <span>{isSubmitting ? 'Verifying Password...' : 'Send WhatsApp OTP & Continue'}</span>
             </button>
           </form>
         )}
 
-        {/* STEP 2 FORM: 6-Digit Phone/WhatsApp OTP */}
+        {/* STEP 2 FORM: 6-Digit WhatsApp OTP Verification */}
         {step === 2 && (
           <form onSubmit={handleStep2Verify} className="space-y-5" autoComplete="off">
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
               <div className="flex items-center justify-center space-x-1.5 text-emerald-800 font-bold text-xs">
                 <Phone className="w-4 h-4 text-emerald-600" />
-                <span>Security OTP Sent to Phone</span>
+                <span>Security OTP Sent to WhatsApp</span>
               </div>
               <p className="text-[11px] text-emerald-900/80">
-                OTP code sent to owner phone number: <strong>+91 63801 44979</strong>
+                Tap the button below to receive your 6-digit OTP on WhatsApp <strong>(+91 63801 44979)</strong>
               </p>
 
-              {/* WhatsApp Quick Link Button */}
+              {/* WhatsApp Button */}
               {activeOtpCode && (
                 <button
                   type="button"
                   onClick={openWhatsAppOtp}
-                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-sm hover:bg-emerald-700 transition-colors mt-2"
+                  className="w-full py-3 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-md hover:bg-emerald-700 transition-colors mt-2"
                 >
                   <MessageSquare className="w-4 h-4 fill-white" />
-                  <span>Receive OTP via WhatsApp (+91 63801 44979)</span>
+                  <span>📲 Tap to Open WhatsApp & Receive OTP</span>
                 </button>
               )}
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1 text-center">
-                Enter 6-Digit Phone/WhatsApp OTP *
+                Enter 6-Digit WhatsApp OTP *
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
@@ -196,7 +194,7 @@ export const AdminLogin: React.FC = () => {
                   required
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="123456"
+                  placeholder="------"
                   autoComplete="off"
                   autoCapitalize="none"
                   autoCorrect="off"
@@ -212,7 +210,7 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify Phone OTP & Access Portal'}</span>
+              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify WhatsApp OTP & Access Portal'}</span>
             </button>
 
             <button
