@@ -42,7 +42,19 @@ async function sendSmsAndWhatsAppOtp(phoneNumber: string, code: string): Promise
     }
   }
 
-  // 2. Twilio SMS / WhatsApp API (if credentials provided)
+  // 2. CallMeBot WhatsApp Free Gateway API (if API Key provided)
+  const callMeBotApiKey = process.env.CALLMEBOT_API_KEY;
+  if (callMeBotApiKey) {
+    try {
+      const text = encodeURIComponent(`🌸 PJ Saree Pleating Security Alert: Your 6-digit Admin Login OTP is ${code}. Valid for 10 minutes.`);
+      https.get(`https://api.callmebot.com/whatsapp.php?phone=+916380144979&text=${text}&apikey=${callMeBotApiKey}`);
+      console.log(`✅ [CALLMEBOT SUCCESS] WhatsApp message triggered to +916380144979`);
+    } catch (e) {
+      console.error('CallMeBot error:', e);
+    }
+  }
+
+  // 3. Twilio SMS / WhatsApp API (if credentials provided)
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
   const fromNumber = process.env.TWILIO_PHONE_NUMBER || 'whatsapp:+14155238886';
@@ -69,6 +81,30 @@ async function sendSmsAndWhatsAppOtp(phoneNumber: string, code: string): Promise
 
   return true;
 }
+
+// GET /api/auth/test-sms - Diagnostic route for SMS & WhatsApp API configuration
+router.get('/test-sms', (req, res) => {
+  const fast2sms = !!(process.env.FAST2SMS_API_KEY || process.env.SMS_API_KEY);
+  const twilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+  const callmebot = !!process.env.CALLMEBOT_API_KEY;
+
+  if (!fast2sms && !twilio && !callmebot) {
+    return res.json({
+      status: 'missing_sms_gateway_key',
+      targetMobile: '+91 63801 44979',
+      message: 'To send automated SMS or WhatsApp messages directly to mobile number +91 63801 44979, add FAST2SMS_API_KEY, TWILIO_ACCOUNT_SID, or CALLMEBOT_API_KEY under Render Environment Settings.',
+      activeGateways: { fast2sms, twilio, callmebot }
+    });
+  }
+
+  sendSmsAndWhatsAppOtp('+916380144979', '849201');
+  return res.json({
+    status: 'success',
+    targetMobile: '+91 63801 44979',
+    message: 'Automated SMS / WhatsApp OTP request dispatched to +91 63801 44979!',
+    activeGateways: { fast2sms, twilio, callmebot }
+  });
+});
 
 // POST /api/auth/login-step1 - Validate password & generate/dispatch mobile SMS/WhatsApp OTP
 router.post('/login-step1', async (req, res) => {
