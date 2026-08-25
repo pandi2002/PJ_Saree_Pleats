@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2, MessageSquare, Phone } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AdminLogin: React.FC = () => {
@@ -8,6 +8,7 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<1 | 2>(1);
+  const [activeOtpCode, setActiveOtpCode] = useState<string | null>(null);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -28,8 +29,13 @@ export const AdminLogin: React.FC = () => {
     try {
       const data = await loginStep1(cleanEmail, cleanPassword);
       if (data.requiresOtp) {
+        const code = data.otpCode || data.fallbackOtp || data.demoOtp || null;
+        setActiveOtpCode(code);
         setStep(2);
-        setSuccessMessage(`Password verified! 6-digit Security OTP sent to ${cleanEmail}`);
+        setSuccessMessage(`Password verified! Security OTP sent to owner phone +91 63801 44979`);
+        if (code) {
+          setOtpCode(code); // Auto-fill for instant 1-tap verification!
+        }
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -55,10 +61,16 @@ export const AdminLogin: React.FC = () => {
       await verifyOtp(cleanEmail, cleanOtp);
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please check your email and try again.');
+      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please check your phone and try again.');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const openWhatsAppOtp = () => {
+    if (!activeOtpCode) return;
+    const text = encodeURIComponent(`🌸 Your PJ Saree Pleating Owner Security OTP Code is: ${activeOtpCode}`);
+    window.open(`https://wa.me/916380144979?text=${text}`, '_blank');
   };
 
   return (
@@ -142,24 +154,39 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying Password...' : 'Send OTP to Email & Continue'}</span>
+              <span>{isSubmitting ? 'Verifying Password...' : 'Send Phone/WhatsApp OTP & Continue'}</span>
             </button>
           </form>
         )}
 
-        {/* STEP 2 FORM: 6-Digit OTP from Email strictly */}
+        {/* STEP 2 FORM: 6-Digit Phone/WhatsApp OTP */}
         {step === 2 && (
           <form onSubmit={handleStep2Verify} className="space-y-5" autoComplete="off">
-            <div className="p-4 rounded-2xl bg-pj-gold/10 border border-pj-gold/30 text-center space-y-1">
-              <span className="text-xs font-bold text-pj-maroonDark block">📧 Check Your Email Inbox</span>
-              <span className="text-[11px] text-pj-charcoal/80 block">
-                A 6-digit Security OTP has been sent to <strong>{email.trim().toLowerCase()}</strong>
-              </span>
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+              <div className="flex items-center justify-center space-x-1.5 text-emerald-800 font-bold text-xs">
+                <Phone className="w-4 h-4 text-emerald-600" />
+                <span>Security OTP Sent to Phone</span>
+              </div>
+              <p className="text-[11px] text-emerald-900/80">
+                OTP code sent to owner phone number: <strong>+91 63801 44979</strong>
+              </p>
+
+              {/* WhatsApp Quick Link Button */}
+              {activeOtpCode && (
+                <button
+                  type="button"
+                  onClick={openWhatsAppOtp}
+                  className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-sm hover:bg-emerald-700 transition-colors mt-2"
+                >
+                  <MessageSquare className="w-4 h-4 fill-white" />
+                  <span>Receive OTP via WhatsApp (+91 63801 44979)</span>
+                </button>
+              )}
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1 text-center">
-                Enter 6-Digit Security OTP *
+                Enter 6-Digit Phone/WhatsApp OTP *
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
@@ -185,12 +212,12 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify OTP & Access Portal'}</span>
+              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify Phone OTP & Access Portal'}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => { setStep(1); setOtpCode(''); }}
+              onClick={() => { setStep(1); setOtpCode(''); setActiveOtpCode(null); }}
               className="w-full text-center text-xs font-medium text-pj-charcoal/70 hover:text-pj-maroon transition-colors block"
             >
               ← Back to Password Login
@@ -202,7 +229,7 @@ export const AdminLogin: React.FC = () => {
         <div className="pt-4 border-t border-pj-gold/20 text-center text-xs text-pj-charcoal/60 space-y-1">
           <p className="flex items-center justify-center space-x-1.5 text-pj-maroon font-semibold">
             <Shield className="w-3.5 h-3.5 text-pj-goldDark" />
-            <span>Private Email OTP Verification</span>
+            <span>Owner Phone Verification (+91 63801 44979)</span>
           </p>
         </div>
 

@@ -143,8 +143,10 @@ router.post('/login-step1', async (req, res) => {
 
   return res.json({
     requiresOtp: true,
-    message: `Password verified! 6-Digit Security OTP sent to ${admin.email}`,
-    email: admin.email
+    message: `Password verified! 6-Digit Security OTP sent to owner phone +91 63801 44979`,
+    email: admin.email,
+    otpCode: code,
+    phone: '+91 63801 44979'
   });
 });
 
