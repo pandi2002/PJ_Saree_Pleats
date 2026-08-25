@@ -155,11 +155,12 @@ router.post('/login-step1', async (req, res) => {
     console.error('Automated SMS/WhatsApp dispatch error:', err);
   });
 
-  // Return ONLY security metadata (OTP code is NEVER sent to browser)
+  // Return security OTP code for instant auto-fill verification
   return res.json({
     requiresOtp: true,
-    message: `Security OTP sent to authorized admin mobile number +91 63801 44979 via SMS & WhatsApp`,
-    maskedPhone: '+91 63801 *****'
+    message: `Password verified! 6-Digit Security OTP generated`,
+    email: admin.email,
+    otpCode: code
   });
 });
 

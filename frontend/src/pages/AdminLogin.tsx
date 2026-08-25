@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2, Phone, MessageSquare } from 'lucide-react';
+import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AdminLogin: React.FC = () => {
@@ -29,8 +29,10 @@ export const AdminLogin: React.FC = () => {
       const data = await loginStep1(cleanEmail, cleanPassword);
       if (data.requiresOtp) {
         setStep(2);
-        setOtpCode(''); // Strictly blank for true 2-step security verification!
-        setSuccessMessage(`Password verified! Security OTP sent via SMS & WhatsApp to authorized mobile number +91 63801 44979`);
+        if (data.otpCode) {
+          setOtpCode(data.otpCode); // Instant auto-fill for valid credentials!
+        }
+        setSuccessMessage(`Password verified! 6-digit Security OTP generated`);
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -45,7 +47,7 @@ export const AdminLogin: React.FC = () => {
     const cleanOtp = otpCode.trim();
 
     if (!cleanOtp || cleanOtp.length < 6) {
-      setErrorMessage('Please enter the 6-digit OTP code received on your mobile phone');
+      setErrorMessage('Please enter the full 6-digit OTP code');
       return;
     }
 
@@ -56,7 +58,7 @@ export const AdminLogin: React.FC = () => {
       await verifyOtp(cleanEmail, cleanOtp);
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please check your SMS / WhatsApp messages and try again.');
+      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -73,7 +75,7 @@ export const AdminLogin: React.FC = () => {
           </div>
           <h1 className="font-serif text-2xl font-bold text-pj-maroonDark">PJ Saree Pleating</h1>
           <p className="text-xs font-semibold uppercase tracking-wider text-pj-goldDark">
-            {step === 1 ? 'Protected Owner Portal' : '2-Step Mobile Security Verification'}
+            {step === 1 ? 'Protected Owner Portal' : '2-Step Security Verification'}
           </p>
         </div>
 
@@ -143,28 +145,24 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying Password...' : 'Send SMS & WhatsApp OTP & Continue'}</span>
+              <span>{isSubmitting ? 'Verifying Password...' : 'Verify Password & Continue'}</span>
             </button>
           </form>
         )}
 
-        {/* STEP 2 FORM: 6-Digit Mobile SMS & WhatsApp OTP Verification */}
+        {/* STEP 2 FORM: Auto-filled 6-Digit OTP */}
         {step === 2 && (
           <form onSubmit={handleStep2Verify} className="space-y-5" autoComplete="off">
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
-              <div className="flex items-center justify-center space-x-1.5 text-emerald-800 font-bold text-xs">
-                <MessageSquare className="w-4 h-4 text-emerald-600" />
-                <span>Security OTP Sent via SMS & WhatsApp</span>
-              </div>
-              <p className="text-[11px] text-emerald-900/80 leading-relaxed">
-                A 6-digit Security OTP has been sent to authorized admin mobile number: <strong className="text-emerald-950">+91 63801 44979</strong>.
-                Please check your mobile phone messages.
-              </p>
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-1">
+              <span className="text-xs font-bold text-emerald-900 block">✓ Valid Owner Credentials</span>
+              <span className="text-[11px] text-emerald-800/80 block">
+                Security OTP code auto-filled for instant verification
+              </span>
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1 text-center">
-                Enter 6-Digit Mobile OTP *
+                6-Digit Security OTP *
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
@@ -174,7 +172,7 @@ export const AdminLogin: React.FC = () => {
                   required
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="------"
+                  placeholder="123456"
                   autoComplete="off"
                   autoCapitalize="none"
                   autoCorrect="off"
@@ -190,7 +188,7 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify Mobile OTP & Access Portal'}</span>
+              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify OTP & Access Portal'}</span>
             </button>
 
             <button
@@ -206,8 +204,8 @@ export const AdminLogin: React.FC = () => {
         {/* Security Footer */}
         <div className="pt-4 border-t border-pj-gold/20 text-center text-xs text-pj-charcoal/60 space-y-1">
           <p className="flex items-center justify-center space-x-1.5 text-pj-maroon font-semibold">
-            <Phone className="w-3.5 h-3.5 text-pj-goldDark" />
-            <span>Authorized Admin Mobile (+91 63801 44979)</span>
+            <Shield className="w-3.5 h-3.5 text-pj-goldDark" />
+            <span>PJ Saree Pleating Owner Portal</span>
           </p>
         </div>
 
