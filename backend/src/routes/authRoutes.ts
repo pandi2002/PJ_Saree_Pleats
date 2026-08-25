@@ -134,10 +134,12 @@ router.post('/login-step1', async (req, res) => {
 
   console.log(`🔐 [SECURITY ALERT] 2-Step OTP Code for ${admin.email}: [ ${code} ]`);
 
-  // Send email asynchronously in background so HTTP response returns instantly (0s delay)
-  sendOtpEmail(admin.email, code).catch((err) => {
-    console.error('Background OTP email dispatch error:', err);
-  });
+  // Send email and wait for completion so Render sends the email before returning HTTP response
+  try {
+    await sendOtpEmail(admin.email, code);
+  } catch (err) {
+    console.error('OTP email dispatch error:', err);
+  }
 
   return res.json({
     requiresOtp: true,
