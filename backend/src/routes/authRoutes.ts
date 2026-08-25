@@ -116,25 +116,19 @@ router.post('/login-step1', async (req, res) => {
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPassword = (password || '').trim();
 
-  // 1. Strictly require owner password yamuna@2008
-  const isDirectPasswordMatch = 
-    cleanPassword === 'yamuna@2008' || 
-    cleanPassword.toLowerCase() === 'yamuna@2008';
-
+  // 1. Find Admin by exact email
   const data = db.get();
-  let admin = data.admins.find((a) => a.email.trim().toLowerCase() === cleanEmail);
-  if (!admin && (cleanEmail.includes('dharshyammu') || cleanEmail.includes('yammu') || data.admins.length > 0)) {
-    admin = data.admins[0];
-  }
+  const admin = data.admins.find((a) => a.email.trim().toLowerCase() === cleanEmail);
 
   if (!admin) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  const isBcryptValid = bcrypt.compareSync(cleanPassword, admin.passwordHash) || 
-                        bcrypt.compareSync(cleanPassword.toLowerCase(), admin.passwordHash);
+  // 2. Validate Password (yamuna@2008 or Bcrypt Hash)
+  const isDirectPasswordMatch = cleanPassword === 'yamuna@2008' || cleanPassword.toLowerCase() === 'yamuna@2008';
+  const isBcryptValid = bcrypt.compareSync(cleanPassword, admin.passwordHash);
 
-  if (!isDirectPasswordMatch && !isBcryptValid) {
+  if (!isBcryptValid && !isDirectPasswordMatch) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
