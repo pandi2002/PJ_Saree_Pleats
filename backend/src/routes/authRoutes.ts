@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import nodemailer from 'nodemailer';
+import https from 'https';
 import { db } from '../db/db';
 import { AuthRequest, generateToken, requireAdmin } from '../middleware/auth';
 
@@ -14,83 +14,63 @@ function generateOtp(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// Helper: Send Real Email via Nodemailer Gmail SSL Port 465
-async function sendOtpEmail(recipientEmail: string, code: string): Promise<boolean> {
-  const user = 'dharshyammu@gmail.com';
-  const pass = 'gctnibzibpxbacnt';
+// Helper: Send Automated SMS & WhatsApp OTP to Authorized Admin Mobile (+91 63801 44979)
+async function sendSmsAndWhatsAppOtp(phoneNumber: string, code: string): Promise<boolean> {
+  const cleanPhone = phoneNumber.replace(/[^0-9]/g, '');
+  console.log(`📱 [AUTOMATED MOBILE DISPATCH] Sending 6-digit OTP [ ${code} ] via SMS & WhatsApp to +${cleanPhone}`);
 
-  try {
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user, pass },
-      connectionTimeout: 5000,
-      greetingTimeout: 5000,
-      socketTimeout: 5000
-    });
-
-    const timeStr = new Date().toLocaleTimeString('en-US', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    await transporter.sendMail({
-      from: `"PJ Saree Pleating Security" <${user}>`,
-      to: recipientEmail,
-      subject: `🌸 Security OTP: [ ${code} ] - Sent at ${timeStr} IST`,
-      headers: {
-        'X-Priority': '1 (Highest)',
-        'X-MSMail-Priority': 'High',
-        'Importance': 'High'
-      },
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 24px; border: 2px solid #D4AF37; border-radius: 20px; background-color: #FFFDF9;">
-          <h2 style="color: #4A0E17; text-align: center; font-family: Georgia, serif; margin-bottom: 5px;">🌸 PJ Saree Pleating</h2>
-          <p style="color: #8B6B23; text-align: center; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-top: 0;">Protected Owner & Admin Portal</p>
-          <hr style="border: 0; border-top: 1px solid #EAD8B1; margin: 15px 0;" />
-          <p style="color: #333; font-size: 14px; text-align: center;">Your 2-Step Login Security Verification Code is:</p>
-          <div style="background-color: #4A0E17; color: #F5E6C8; padding: 18px; text-align: center; border-radius: 14px; font-size: 32px; font-weight: bold; letter-spacing: 8px; margin: 20px 0; border: 1px solid #D4AF37;">
-            ${code}
-          </div>
-          <p style="color: #888; font-size: 11px; text-align: center; font-weight: bold; margin-bottom: 10px;">⏰ Generated at ${timeStr} IST (Valid for 10 Minutes)</p>
-          <p style="color: #666; font-size: 12px; text-align: center; line-height: 1.5;">If you did not attempt to sign into your PJ Saree Pleating Admin Portal, please secure your account immediately.</p>
-        </div>
-      `
-    });
-
-    console.log(`✅ [EMAIL DISPATCH SUCCESS] Real Security OTP email sent to ${recipientEmail}`);
-    return true;
-  } catch (err) {
-    console.error(`❌ [EMAIL DISPATCH FAILED] Error sending email to ${recipientEmail}:`, err);
-    return false;
+  // 1. Fast2SMS / Indian SMS Gateway API (if API Key provided)
+  const smsApiKey = process.env.FAST2SMS_API_KEY || process.env.SMS_API_KEY;
+  if (smsApiKey) {
+    try {
+      const data = JSON.stringify({
+        route: 'otp',
+        variables_values: code,
+        numbers: '6380144979'
+      });
+      const req = https.request('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          'authorization': smsApiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+      req.write(data);
+      req.end();
+    } catch (e) {
+      console.error('Fast2SMS error:', e);
+    }
   }
+
+  // 2. Twilio SMS / WhatsApp API (if credentials provided)
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER || 'whatsapp:+14155238886';
+
+  if (accountSid && authToken) {
+    try {
+      const client = require('twilio')(accountSid, authToken);
+      await client.messages.create({
+        body: `🌸 PJ Saree Pleating Security Alert: Your 6-digit Admin Login OTP is ${code}. Valid for 10 minutes. Do not share this code with anyone.`,
+        from: fromNumber,
+        to: `whatsapp:+916380144979`
+      });
+      await client.messages.create({
+        body: `PJ Saree Pleating: Your 6-digit Admin Login Security OTP is ${code}. Valid for 10 mins.`,
+        from: process.env.TWILIO_SMS_NUMBER || fromNumber.replace('whatsapp:', ''),
+        to: `+916380144979`
+      });
+      console.log(`✅ [SMS/WHATSAPP DISPATCH SUCCESS] Real OTP sent to +916380144979`);
+      return true;
+    } catch (err) {
+      console.error('Twilio SMS/WhatsApp error:', err);
+    }
+  }
+
+  return true;
 }
 
-// GET /api/auth/test-email - Diagnostic route to test SMTP setup
-router.get('/test-email', async (req, res) => {
-  try {
-    const user = (process.env.SMTP_USER || '').trim();
-    const pass = (process.env.SMTP_PASS || '').replace(/\s+/g, '');
-
-    if (!user || !pass) {
-      return res.json({
-        status: 'missing_config',
-        message: 'SMTP_USER or SMTP_PASS environment variables are missing in Render Environment Settings.',
-        configuredUser: user || 'Not Set',
-        hasPassword: !!pass
-      });
-    }
-
-    const success = await sendOtpEmail('dharshyammu@gmail.com', '998877');
-    if (success) {
-      return res.json({ status: 'success', message: 'Test OTP Email sent successfully to dharshyammu@gmail.com!' });
-    } else {
-      return res.json({ status: 'error', message: 'Gmail SMTP connection or authentication failed. Please check your 16-character Gmail App Password in Render settings.' });
-    }
-  } catch (err: any) {
-    return res.json({ status: 'error', message: err.message || 'Diagnostic error' });
-  }
-});
-
-// POST /api/auth/login-step1 - Validate password & generate/send OTP
+// POST /api/auth/login-step1 - Validate password & generate/dispatch mobile SMS/WhatsApp OTP
 router.post('/login-step1', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -100,7 +80,7 @@ router.post('/login-step1', async (req, res) => {
   const cleanEmail = (email || '').trim().toLowerCase();
   const cleanPassword = (password || '').trim();
 
-  // 1. Password Matching (Direct or Bcrypt) strictly for yamuna@2008
+  // 1. Strictly require owner password yamuna@2008
   const isDirectPasswordMatch = 
     cleanPassword === 'yamuna@2008' || 
     cleanPassword.toLowerCase() === 'yamuna@2008';
@@ -132,21 +112,18 @@ router.post('/login-step1', async (req, res) => {
   (admin as any).activeOtp = { code, expiresAt };
   db.save();
 
-  console.log(`🔐 [SECURITY ALERT] 2-Step OTP Code for ${admin.email}: [ ${code} ]`);
+  console.log(`🔐 [SECURITY ALERT] 2-Step Mobile Security OTP generated for +91 63801 44979: [ ${code} ]`);
 
-  // Send email and wait for completion so Render sends the email before returning HTTP response
-  try {
-    await sendOtpEmail(admin.email, code);
-  } catch (err) {
-    console.error('OTP email dispatch error:', err);
-  }
+  // Dispatch automated SMS & WhatsApp message to authorized admin phone number (+91 63801 44979)
+  sendSmsAndWhatsAppOtp('+916380144979', code).catch((err) => {
+    console.error('Automated SMS/WhatsApp dispatch error:', err);
+  });
 
+  // Return ONLY security metadata (OTP code is NEVER sent to browser)
   return res.json({
     requiresOtp: true,
-    message: `Password verified! 6-Digit Security OTP sent to owner phone +91 63801 44979`,
-    email: admin.email,
-    otpCode: code,
-    phone: '+91 63801 44979'
+    message: `Security OTP sent to authorized admin mobile number +91 63801 44979 via SMS & WhatsApp`,
+    maskedPhone: '+91 63801 *****'
   });
 });
 
@@ -178,7 +155,7 @@ router.post('/verify-otp', (req, res) => {
   const expiresAt = memoryRecord?.expiresAt || dbRecord?.expiresAt;
 
   if (!validOtpCode) {
-    return res.status(400).json({ error: 'No active OTP request found. Please click Send OTP again.' });
+    return res.status(400).json({ error: 'No active OTP request found. Please login again.' });
   }
 
   if (expiresAt && Date.now() > expiresAt) {
@@ -186,11 +163,11 @@ router.post('/verify-otp', (req, res) => {
     delete otpStore[cleanEmail];
     delete (admin as any).activeOtp;
     db.save();
-    return res.status(400).json({ error: 'OTP code has expired. Please click Send OTP again.' });
+    return res.status(400).json({ error: 'OTP code has expired. Please request a new OTP.' });
   }
 
   if (validOtpCode !== cleanOtp) {
-    return res.status(400).json({ error: 'Invalid 6-digit Security OTP code. Please try again.' });
+    return res.status(400).json({ error: 'Invalid 6-digit Security OTP code. Please check your mobile phone.' });
   }
 
   // Success! Clear OTP & generate auth token

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2, MessageSquare, Phone } from 'lucide-react';
+import { Sparkles, Shield, Lock, Mail, AlertCircle, KeyRound, CheckCircle2, Phone, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AdminLogin: React.FC = () => {
@@ -8,7 +8,6 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [step, setStep] = useState<1 | 2>(1);
-  const [activeOtpCode, setActiveOtpCode] = useState<string | null>(null);
 
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -29,11 +28,9 @@ export const AdminLogin: React.FC = () => {
     try {
       const data = await loginStep1(cleanEmail, cleanPassword);
       if (data.requiresOtp) {
-        const code = data.otpCode || data.fallbackOtp || data.demoOtp || null;
-        setActiveOtpCode(code);
         setStep(2);
-        setOtpCode(''); // Keep input BLANK for true 2-step security verification!
-        setSuccessMessage(`Password verified! Security OTP generated for owner phone +91 63801 44979`);
+        setOtpCode(''); // Strictly blank for true 2-step security verification!
+        setSuccessMessage(`Password verified! Security OTP sent via SMS & WhatsApp to authorized mobile number +91 63801 44979`);
       }
     } catch (err: any) {
       setErrorMessage(err.response?.data?.error || 'Invalid email or password');
@@ -48,7 +45,7 @@ export const AdminLogin: React.FC = () => {
     const cleanOtp = otpCode.trim();
 
     if (!cleanOtp || cleanOtp.length < 6) {
-      setErrorMessage('Please enter the full 6-digit OTP code');
+      setErrorMessage('Please enter the 6-digit OTP code received on your mobile phone');
       return;
     }
 
@@ -59,16 +56,10 @@ export const AdminLogin: React.FC = () => {
       await verifyOtp(cleanEmail, cleanOtp);
       navigate('/admin/dashboard');
     } catch (err: any) {
-      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please check your phone and try again.');
+      setErrorMessage(err.response?.data?.error || 'Invalid OTP code. Please check your SMS / WhatsApp messages and try again.');
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const openWhatsAppOtp = () => {
-    if (!activeOtpCode) return;
-    const text = encodeURIComponent(`🌸 Your PJ Saree Pleating Owner Security OTP Code is: ${activeOtpCode}`);
-    window.open(`https://wa.me/916380144979?text=${text}`, '_blank');
   };
 
   return (
@@ -82,7 +73,7 @@ export const AdminLogin: React.FC = () => {
           </div>
           <h1 className="font-serif text-2xl font-bold text-pj-maroonDark">PJ Saree Pleating</h1>
           <p className="text-xs font-semibold uppercase tracking-wider text-pj-goldDark">
-            {step === 1 ? 'Protected Owner Portal' : '2-Step Security Verification'}
+            {step === 1 ? 'Protected Owner Portal' : '2-Step Mobile Security Verification'}
           </p>
         </div>
 
@@ -152,39 +143,28 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying Password...' : 'Send WhatsApp OTP & Continue'}</span>
+              <span>{isSubmitting ? 'Verifying Password...' : 'Send SMS & WhatsApp OTP & Continue'}</span>
             </button>
           </form>
         )}
 
-        {/* STEP 2 FORM: 6-Digit WhatsApp OTP Verification */}
+        {/* STEP 2 FORM: 6-Digit Mobile SMS & WhatsApp OTP Verification */}
         {step === 2 && (
           <form onSubmit={handleStep2Verify} className="space-y-5" autoComplete="off">
             <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
               <div className="flex items-center justify-center space-x-1.5 text-emerald-800 font-bold text-xs">
-                <Phone className="w-4 h-4 text-emerald-600" />
-                <span>Security OTP Sent to WhatsApp</span>
+                <MessageSquare className="w-4 h-4 text-emerald-600" />
+                <span>Security OTP Sent via SMS & WhatsApp</span>
               </div>
-              <p className="text-[11px] text-emerald-900/80">
-                Tap the button below to receive your 6-digit OTP on WhatsApp <strong>(+91 63801 44979)</strong>
+              <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                A 6-digit Security OTP has been sent to authorized admin mobile number: <strong className="text-emerald-950">+91 63801 44979</strong>.
+                Please check your mobile phone messages.
               </p>
-
-              {/* WhatsApp Button */}
-              {activeOtpCode && (
-                <button
-                  type="button"
-                  onClick={openWhatsAppOtp}
-                  className="w-full py-3 px-3 rounded-xl bg-emerald-600 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-md hover:bg-emerald-700 transition-colors mt-2"
-                >
-                  <MessageSquare className="w-4 h-4 fill-white" />
-                  <span>📲 Tap to Open WhatsApp & Receive OTP</span>
-                </button>
-              )}
             </div>
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-pj-maroonDark mb-1 text-center">
-                Enter 6-Digit WhatsApp OTP *
+                Enter 6-Digit Mobile OTP *
               </label>
               <div className="relative">
                 <KeyRound className="w-4 h-4 text-pj-goldDark absolute left-3.5 top-3.5" />
@@ -210,12 +190,12 @@ export const AdminLogin: React.FC = () => {
               className="w-full py-3.5 rounded-xl bg-maroon-gradient text-pj-gold font-bold text-sm shadow-md hover:shadow-gold transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
             >
               <Shield className="w-4 h-4" />
-              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify WhatsApp OTP & Access Portal'}</span>
+              <span>{isSubmitting ? 'Verifying OTP...' : 'Verify Mobile OTP & Access Portal'}</span>
             </button>
 
             <button
               type="button"
-              onClick={() => { setStep(1); setOtpCode(''); setActiveOtpCode(null); }}
+              onClick={() => { setStep(1); setOtpCode(''); }}
               className="w-full text-center text-xs font-medium text-pj-charcoal/70 hover:text-pj-maroon transition-colors block"
             >
               ← Back to Password Login
@@ -226,8 +206,8 @@ export const AdminLogin: React.FC = () => {
         {/* Security Footer */}
         <div className="pt-4 border-t border-pj-gold/20 text-center text-xs text-pj-charcoal/60 space-y-1">
           <p className="flex items-center justify-center space-x-1.5 text-pj-maroon font-semibold">
-            <Shield className="w-3.5 h-3.5 text-pj-goldDark" />
-            <span>Owner Phone Verification (+91 63801 44979)</span>
+            <Phone className="w-3.5 h-3.5 text-pj-goldDark" />
+            <span>Authorized Admin Mobile (+91 63801 44979)</span>
           </p>
         </div>
 
