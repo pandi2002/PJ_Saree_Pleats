@@ -124,11 +124,11 @@ router.post('/login-step1', async (req, res) => {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  // 2. Validate Password (yamuna@2008 or Bcrypt Hash)
-  const isDirectPasswordMatch = cleanPassword === 'yamuna@2008' || cleanPassword.toLowerCase() === 'yamuna@2008';
-  const isBcryptValid = bcrypt.compareSync(cleanPassword, admin.passwordHash);
+  // 2. Validate Password via Secure Bcrypt Cryptographic Hash
+  const isPasswordValid = bcrypt.compareSync(cleanPassword, admin.passwordHash) ||
+                          (process.env.ADMIN_PASSWORD && cleanPassword === process.env.ADMIN_PASSWORD);
 
-  if (!isBcryptValid && !isDirectPasswordMatch) {
+  if (!isPasswordValid) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 

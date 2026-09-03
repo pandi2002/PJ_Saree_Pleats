@@ -133,8 +133,10 @@ export function initDatabase() {
   const data = dbInstance.getData();
 
   // 1. Seed & Sync Admin User
-  const adminIndex = data.admins.findIndex(a => a.email.toLowerCase() === 'dharshyammu@gmail.com');
-  const passwordHash = bcrypt.hashSync('yamuna@2008', 10);
+  const ownerEmail = (process.env.ADMIN_EMAIL || 'dharshyammu@gmail.com').trim().toLowerCase();
+  const ownerPass = process.env.ADMIN_PASSWORD || 'yamuna@2008';
+  const adminIndex = data.admins.findIndex(a => a.email.toLowerCase() === ownerEmail);
+  const passwordHash = bcrypt.hashSync(ownerPass, 10);
 
   if (adminIndex >= 0) {
     data.admins[adminIndex].passwordHash = passwordHash;
@@ -142,7 +144,7 @@ export function initDatabase() {
     data.admins.push({
       id: 'admin-1',
       name: 'PJ Saree Pleating Owner',
-      email: 'dharshyammu@gmail.com',
+      email: ownerEmail,
       passwordHash,
       role: 'admin',
       createdAt: new Date().toISOString()
